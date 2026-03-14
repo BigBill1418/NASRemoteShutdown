@@ -49,6 +49,23 @@ shell_command:
     'sudo /usr/syno/sbin/synoshutdown -h'
     2>&1
 
+  # Run this via Developer Tools → Services to diagnose SSH connectivity
+  # without triggering an actual shutdown.
+  diagnose_nas_ssh: >-
+    bash -c '
+    KEY=/config/.ssh/id_ed25519_ha_nas_shutdown;
+    NAS=192.168.50.20;
+    echo "=== key file ===";
+    ls -la $KEY 2>&1 || echo "KEY MISSING";
+    echo "=== ping ===";
+    ping -c2 -W2 $NAS 2>&1 | tail -3;
+    echo "=== ssh port ===";
+    nc -zw3 $NAS 22 2>&1 && echo "port 22 OPEN" || echo "port 22 CLOSED/unreachable";
+    echo "=== ssh auth ===";
+    ssh -i $KEY -o StrictHostKeyChecking=no -o ConnectTimeout=5 -o BatchMode=yes
+    -o PasswordAuthentication=no ha_shutdown@$NAS echo "SSH_OK" 2>&1;
+    '
+
 # ─── Guard Flag ──────────────────────────────────────────────────────────────
 # Prevents the automation from firing repeatedly if battery oscillates near 50%,
 # or if the NAS takes time to shut down and the sensor keeps reading low.
@@ -116,6 +133,22 @@ automation:
                 • NAS reachable at 192.168.50.20
                 • ha_shutdown user configured on NAS
               notification_id: ups_nas_shutdown
+
+  # DIAGNOSTIC: Run manually via Developer Tools → Automations to check SSH prerequisites
+  - id: ups_diagnose_nas_ssh
+    alias: "UPS: Diagnose NAS SSH connection"
+    description: >
+      Manual trigger only. Checks key file, ping, port 22, and SSH auth
+      then shows all results in a persistent notification. Safe — no shutdown.
+    trigger: []
+    action:
+      - service: shell_command.diagnose_nas_ssh
+        response_variable: diag
+      - service: persistent_notification.create
+        data:
+          title: "NAS SSH Diagnostics"
+          message: "{{ diag.stdout | default('(no output — shell_command may not support this HA version)') }}"
+          notification_id: nas_ssh_diag
 
   # RESET: Clear guard flag when AC power is restored so next outage works
   - id: ups_reset_nas_shutdown_flag
