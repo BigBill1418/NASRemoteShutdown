@@ -53,7 +53,7 @@ mkdir -p "${SSH_DIR}"
 
 # Forced-command entry: even if this key were compromised, it can ONLY run
 # synoshutdown -h — nothing else.
-FORCED_COMMAND="command=\"sudo ${SHUTDOWN_CMD} -h\",no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty"
+FORCED_COMMAND="command=\"sudo ${SHUTDOWN_CMD} -s\",no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty"
 
 echo "${FORCED_COMMAND} ${HA_PUBLIC_KEY}" > "${AUTH_KEYS}"
 

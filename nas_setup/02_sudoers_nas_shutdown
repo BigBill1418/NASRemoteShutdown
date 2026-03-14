@@ -9,4 +9,4 @@
 #   sudo chown root:root /etc/sudoers.d/ha_shutdown
 #   sudo visudo -c   # validate syntax before relying on it
 
-ha_shutdown ALL=(ALL) NOPASSWD: /usr/syno/sbin/synoshutdown -h
+ha_shutdown ALL=(ALL) NOPASSWD: /usr/syno/sbin/synoshutdown -s
