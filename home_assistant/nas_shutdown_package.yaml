@@ -109,6 +109,7 @@ automation:
               title: "UPS Alert — NAS Shutdown FAILED"
               message: >
                 SSH shutdown command FAILED (exit code {{ ssh_result.returncode }}).
+                Error: {{ ssh_result.stderr | default('(no stderr)') }}
                 NAS may NOT be shutting down. Check HA logs and verify:
                 • Key exists at /config/.ssh/id_ed25519_ha_nas_shutdown (chmod 600)
                 • NAS reachable at 192.168.50.20
