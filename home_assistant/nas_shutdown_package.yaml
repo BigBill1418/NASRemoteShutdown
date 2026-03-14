@@ -116,10 +116,21 @@ automation:
     description: >
       Clears the guard flag when the UPS goes back online so the next
       power outage will trigger the shutdown automation again.
+      Also fires on HA startup so a stuck flag from a previous reboot is
+      always cleared when AC power is present.
     trigger:
       - platform: state
         entity_id: sensor.network_ups_status
         to: "OL"    # Online — AC power restored
+      - platform: homeassistant
+        event: start  # HA restarted — clear any flag left over from last session
+    condition:
+      # Only reset the flag when AC power is actually on.
+      # If HA restarts during an active outage (OB), leave the flag alone
+      # so the shutdown automation can still fire at ≤50%.
+      - condition: state
+        entity_id: sensor.network_ups_status
+        state: "OL"
     action:
       - service: input_boolean.turn_off
         target:
