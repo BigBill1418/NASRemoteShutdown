@@ -46,7 +46,7 @@ shell_command:
     -o ConnectTimeout=10
     -o BatchMode=yes
     ha_shutdown@192.168.50.20
-    'sudo /usr/syno/sbin/synoshutdown -s'
+    'touch ~/.shutdown_requested'
     2>&1
 
   # Run via Developer Tools → Automations → "UPS: Generate NAS SSH key"
