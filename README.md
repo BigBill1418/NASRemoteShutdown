@@ -13,7 +13,7 @@ Unifi UPS (NUT Server @ 10.20.30.5)
         │  NUT protocol (port 3493)
         ▼
 Home Assistant — NUT integration
-        │  monitors sensor.ups_battery_charge + sensor.ups_status
+        │  monitors sensor.network_ups_battery_charge + sensor.network_ups_status
         ▼
 HA Automation  (triggers: OB status AND battery ≤ 50%)
         │  SSH with key auth (30-second grace delay)
@@ -107,7 +107,21 @@ This allows `ha_shutdown` to run `/usr/syno/sbin/synoshutdown -h` without a pass
 
 ---
 
-### Step 4 — Deploy the HA package
+### Step 4 — Add the NUT integration via UI
+
+The NUT integration no longer supports YAML configuration. Add it through the HA interface:
+
+1. **Settings → Integrations → Add Integration → NUT**
+2. Enter: Host `10.20.30.5`, Port `3493`
+3. Complete the setup wizard
+
+After setup, verify in **Developer Tools → States** (search `ups`) that you see:
+- `sensor.network_ups_battery_charge` — a numeric value (e.g., `87`)
+- `sensor.network_ups_status` — a string (`OL`, `OB`, or `LB`)
+
+---
+
+### Step 5 — Deploy the HA package
 
 On the HA host:
 
@@ -120,19 +134,7 @@ mkdir -p /config/packages
 cp home_assistant/nas_shutdown_package.yaml /config/packages/
 ```
 
-> **If you already have a `nut:` block in configuration.yaml**, do not copy the `nut:` section — only copy the `shell_command:`, `input_boolean:`, and `automation:` blocks.
-
----
-
-### Step 5 — Reload Home Assistant
-
-In HA: **Settings → System → Restart** (or `ha core restart` from the CLI).
-
-After restart, go to **Developer Tools → States** and search for `ups` — you should see:
-- `sensor.ups_battery_charge` — a numeric value (e.g., `87`)
-- `sensor.ups_status` — a string (`OL`, `OB`, or `LB`)
-
-If these sensors don't appear, see [Troubleshooting](#troubleshooting) below.
+Then reload: **Settings → System → Restart** (or `ha core restart` from the CLI).
 
 ---
 
@@ -158,7 +160,7 @@ When you're ready to verify end-to-end (NAS will actually shut down):
 
 1. Make sure all NAS workloads are idle / data is synced
 2. Temporarily change `below: 51` to `below: 101` in the automation in HA
-3. Set `sensor.ups_status` state to `OB` manually via **Developer Tools → States** (or unplug the UPS)
+3. Set `sensor.network_ups_status` state to `OB` manually via **Developer Tools → States** (or unplug the UPS)
 4. The automation fires — NAS should gracefully halt after 30 seconds
 5. Power the NAS back on, then revert the threshold to `51`
 
@@ -170,8 +172,8 @@ When you're ready to verify end-to-end (NAS will actually shut down):
 
 | Condition | Value | Reason |
 |-----------|-------|--------|
-| `sensor.ups_battery_charge` | `< 51` (i.e., ≤50%) | Your target threshold |
-| `sensor.ups_status` | `OB` (On Battery) | Prevents false triggers when battery reads low during normal AC operation |
+| `sensor.network_ups_battery_charge` | `< 51` (i.e., ≤50%) | Your target threshold |
+| `sensor.network_ups_status` | `OB` (On Battery) | Prevents false triggers when battery reads low during normal AC operation |
 | `input_boolean.nas_shutdown_triggered` | `off` | Guard flag — prevents re-triggering during the shutdown sequence |
 
 ### Action sequence
@@ -184,7 +186,7 @@ When you're ready to verify end-to-end (NAS will actually shut down):
 
 ### Power restore
 
-When the UPS goes back online (`sensor.ups_status` → `OL`), the guard flag resets automatically so the next outage will trigger the shutdown again.
+When the UPS goes back online (`sensor.network_ups_status` → `OL`), the guard flag resets automatically so the next outage will trigger the shutdown again.
 
 ---
 
