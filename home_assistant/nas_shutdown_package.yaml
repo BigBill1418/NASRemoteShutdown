@@ -71,11 +71,6 @@ automation:
         entity_id: sensor.network_ups_battery_charge
         # Fires when battery crosses below 51 (i.e., first reading at ≤50)
         below: 51
-    condition:
-      # Guard: don't re-trigger if we already sent the shutdown command
-      - condition: state
-        entity_id: input_boolean.nas_shutdown_triggered
-        state: "off"
     action:
       # Set guard flag immediately to block any re-triggers
       - service: input_boolean.turn_on
