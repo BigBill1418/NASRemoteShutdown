@@ -1,0 +1,12 @@
+# /etc/sudoers.d/ha_shutdown
+#
+# Allows the 'ha_shutdown' user to run ONLY the Synology graceful halt command
+# without a password prompt.
+#
+# Deploy on the NAS:
+#   sudo cp 02_sudoers_nas_shutdown /etc/sudoers.d/ha_shutdown
+#   sudo chmod 440 /etc/sudoers.d/ha_shutdown
+#   sudo chown root:root /etc/sudoers.d/ha_shutdown
+#   sudo visudo -c   # validate syntax before relying on it
+
+ha_shutdown ALL=(ALL) NOPASSWD: /usr/syno/sbin/synoshutdown -h
