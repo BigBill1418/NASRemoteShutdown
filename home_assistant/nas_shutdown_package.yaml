@@ -49,6 +49,23 @@ shell_command:
     'sudo /usr/syno/sbin/synoshutdown -h'
     2>&1
 
+  # Run via Developer Tools → Automations → "UPS: Generate NAS SSH key"
+  # Generates the ED25519 keypair if it doesn't already exist, then
+  # displays the public key in a persistent notification for copy-paste.
+  generate_nas_ssh_key: >-
+    bash -c '
+    KEY=/config/.ssh/id_ed25519_ha_nas_shutdown;
+    if [ -f "$KEY" ]; then
+      echo "KEY_EXISTS: $(cat ${KEY}.pub)";
+      exit 0;
+    fi;
+    mkdir -p /config/.ssh && chmod 700 /config/.ssh;
+    ssh-keygen -t ed25519 -f "$KEY" -N "" -C "home-assistant-nas-shutdown" 2>&1;
+    chmod 600 "$KEY";
+    chmod 644 "${KEY}.pub";
+    echo "KEY_GENERATED: $(cat ${KEY}.pub)";
+    '
+
   # Run this via Developer Tools → Services to diagnose SSH connectivity
   # without triggering an actual shutdown.
   diagnose_nas_ssh: >-
@@ -149,6 +166,29 @@ automation:
           title: "NAS SSH Diagnostics"
           message: "{{ diag.stdout | default('(no output — shell_command may not support this HA version)') }}"
           notification_id: nas_ssh_diag
+
+  # SETUP: Generate SSH keypair from HA UI — run once during initial setup
+  - id: ups_generate_nas_ssh_key
+    alias: "UPS: Generate NAS SSH key"
+    description: >
+      Manual trigger only. Generates the ED25519 keypair at
+      /config/.ssh/id_ed25519_ha_nas_shutdown if it doesn't exist,
+      then shows the public key in a notification so it can be
+      copied to the NAS authorized_keys.
+    trigger: []
+    action:
+      - service: shell_command.generate_nas_ssh_key
+        response_variable: keygen_result
+      - service: persistent_notification.create
+        data:
+          title: "NAS SSH Key"
+          message: >
+            {{ keygen_result.stdout | default('(no output)') }}
+
+            Next: copy the public key above into
+            ~ha_shutdown/.ssh/authorized_keys on the NAS,
+            then run the "UPS: Diagnose NAS SSH connection" automation to verify.
+          notification_id: nas_ssh_keygen
 
   # RESET: Clear guard flag when AC power is restored so next outage works
   - id: ups_reset_nas_shutdown_flag
