@@ -55,15 +55,16 @@ shell_command:
   generate_nas_ssh_key: >-
     bash -c '
     KEY=/config/.ssh/id_ed25519_ha_nas_shutdown;
-    if [ -f "$KEY" ]; then
-      echo "KEY_EXISTS: $(cat ${KEY}.pub)";
-      exit 0;
-    fi;
     mkdir -p /config/.ssh && chmod 700 /config/.ssh;
-    ssh-keygen -t ed25519 -f "$KEY" -N "" -C "home-assistant-nas-shutdown" 2>&1;
-    chmod 600 "$KEY";
+    if [ ! -f "$KEY" ]; then
+      ssh-keygen -t ed25519 -f "$KEY" -N "" -C "home-assistant-nas-shutdown" 2>&1;
+      chmod 600 "$KEY";
+    fi;
+    if [ ! -f "${KEY}.pub" ]; then
+      ssh-keygen -y -f "$KEY" > "${KEY}.pub";
+    fi;
     chmod 644 "${KEY}.pub";
-    echo "KEY_GENERATED: $(cat ${KEY}.pub)";
+    cat "${KEY}.pub";
     '
 
   # Run this via Developer Tools → Services to diagnose SSH connectivity
