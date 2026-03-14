@@ -92,11 +92,8 @@ automation:
           title: "UPS Alert — NAS Shutdown Pending"
           message: >
             UPS battery at {{ states('sensor.network_ups_battery_charge') }}% on battery power.
-            Shutting down NAS (192.168.50.20) in 30 seconds.
+            Shutting down NAS (192.168.50.20) now.
           notification_id: ups_nas_shutdown
-
-      # Grace period — lets any running NAS jobs settle
-      - delay: "00:00:30"
 
       # Send the shutdown command
       - service: shell_command.shutdown_nas
