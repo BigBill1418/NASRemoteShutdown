@@ -86,17 +86,34 @@ automation:
             Shutting down NAS (192.168.50.20) now.
           notification_id: ups_nas_shutdown
 
-      # Send the shutdown command
+      # Send the shutdown command and capture result
       - service: shell_command.shutdown_nas
+        response_variable: ssh_result
 
-      - service: persistent_notification.create
-        data:
-          title: "UPS Alert — NAS Shutdown Sent"
-          message: >
-            Shutdown command sent to NAS at
-            {{ now().strftime('%H:%M:%S') }}.
-            UPS battery: {{ states('sensor.network_ups_battery_charge') }}%.
-          notification_id: ups_nas_shutdown
+      # Notify based on whether SSH succeeded or failed
+      - if:
+          - condition: template
+            value_template: "{{ ssh_result.returncode == 0 }}"
+        then:
+          - service: persistent_notification.create
+            data:
+              title: "UPS Alert — NAS Shutdown Sent"
+              message: >
+                Shutdown command sent to NAS at
+                {{ now().strftime('%H:%M:%S') }}.
+                UPS battery: {{ states('sensor.network_ups_battery_charge') }}%.
+              notification_id: ups_nas_shutdown
+        else:
+          - service: persistent_notification.create
+            data:
+              title: "UPS Alert — NAS Shutdown FAILED"
+              message: >
+                SSH shutdown command FAILED (exit code {{ ssh_result.returncode }}).
+                NAS may NOT be shutting down. Check HA logs and verify:
+                • Key exists at /config/.ssh/id_ed25519_ha_nas_shutdown (chmod 600)
+                • NAS reachable at 192.168.50.20
+                • ha_shutdown user configured on NAS
+              notification_id: ups_nas_shutdown
 
   # RESET: Clear guard flag when AC power is restored so next outage works
   - id: ups_reset_nas_shutdown_flag
